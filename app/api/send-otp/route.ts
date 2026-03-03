@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import SibApiV3Sdk from "sib-api-v3-sdk";
 import { db } from "@/app/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
 
@@ -17,36 +16,43 @@ export async function POST(req: Request) {
     // 🔥 Generate 6 digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 🔥 Save OTP in Firestore
+    // 🔥 Save OTP in Firestore (10 min expiry)
     await setDoc(doc(db, "emailVerifications", uid), {
       otp,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 min
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
 
     // ==============================
-    // 🔥 BREVO CONFIG
+    // 🔥 BREVO FETCH API (No SDK)
     // ==============================
 
-    const client = SibApiV3Sdk.ApiClient.instance;
-    const apiKey = client.authentications["api-key"];
-    apiKey.apiKey = process.env.BREVO_API_KEY!
-
-    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-
-    await apiInstance.sendTransacEmail({
-      sender: {
-        email: "8000haresh@gmail.com", // 🔥 Yahan apna verified gmail dalna
-        name: "Surendra Book Store",
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": process.env.BREVO_API_KEY as string,
       },
-      to: [{ email }],
-      subject: "Your OTP Code",
-      htmlContent: `
-        <h2>Email Verification</h2>
-        <p>Your OTP is:</p>
-        <h1>${otp}</h1>
-        <p>This code will expire in 10 minutes.</p>
-      `,
+      body: JSON.stringify({
+        sender: {
+          email: "8000haresh@gmail.com", // ⚠ Must be verified in Brevo
+          name: "Surendra Book Store",
+        },
+        to: [{ email }],
+        subject: "Your OTP Code",
+        htmlContent: `
+          <h2>Email Verification</h2>
+          <p>Your OTP is:</p>
+          <h1>${otp}</h1>
+          <p>This code will expire in 10 minutes.</p>
+        `,
+      }),
     });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Brevo API Error:", errorData);
+      throw new Error("Email sending failed");
+    }
 
     return NextResponse.json({
       success: true,
@@ -54,7 +60,7 @@ export async function POST(req: Request) {
     });
 
   } catch (error) {
-    console.error("Brevo Error:", error);
+    console.error("Send OTP Error:", error);
     return NextResponse.json(
       { error: "Failed to send OTP" },
       { status: 500 }
