@@ -5,29 +5,48 @@ import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import Link from "next/link";
+import { useAuth } from "../../context/AuthContext";
 
 export default function SuccessPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
+
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return; // wait for auth
+
     const fetchOrder = async () => {
-      const ref = doc(db, "orders", params.id as string);
-      const snap = await getDoc(ref);
+      try {
+        const ref = doc(db, "orders", params.id as string);
+        const snap = await getDoc(ref);
 
-      if (!snap.exists()) {
+        if (!snap.exists()) {
+          router.push("/");
+          return;
+        }
+
+        setOrder({ id: snap.id, ...snap.data() });
+      } catch (error) {
+        console.error("Error loading order:", error);
         router.push("/");
-        return;
+      } finally {
+        setLoading(false);
       }
-
-      setOrder({ id: snap.id, ...snap.data() });
-      setLoading(false);
     };
 
     fetchOrder();
-  }, [params.id, router]);
+  }, [params.id, router, user]);
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        Checking authentication...
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -36,6 +55,8 @@ export default function SuccessPage() {
       </div>
     );
   }
+
+  if (!order) return null;
 
   const items = order.items || [];
 
@@ -50,13 +71,10 @@ export default function SuccessPage() {
 
   return (
     <main className="min-h-screen bg-linear-to-br from-black via-gray-950 to-black text-white px-6 md:px-16 py-16">
-
       <div className="max-w-4xl mx-auto bg-gray-900 border border-gray-800 rounded-3xl p-12 shadow-2xl">
 
         <div className="text-center mb-12">
-          <div className="text-6xl mb-4 text-green-400">
-            ✅
-          </div>
+          <div className="text-6xl mb-4 text-green-400">✅</div>
 
           <h1 className="text-4xl font-bold">
             Payment Submitted Successfully
@@ -68,7 +86,6 @@ export default function SuccessPage() {
         </div>
 
         <div className="bg-gray-800 p-8 rounded-2xl">
-
           <p className="text-gray-400 text-sm">Order ID</p>
           <p className="text-yellow-400 text-xl font-bold mb-6">
             {order.id}
@@ -77,12 +94,8 @@ export default function SuccessPage() {
           <div className="space-y-3">
             {items.map((item: any) => (
               <div key={item.id} className="flex justify-between">
-                <span>
-                  {item.title} × {item.quantity}
-                </span>
-                <span>
-                  ₹{item.price * item.quantity}
-                </span>
+                <span>{item.title} × {item.quantity}</span>
+                <span>₹{item.price * item.quantity}</span>
               </div>
             ))}
           </div>
@@ -97,7 +110,6 @@ export default function SuccessPage() {
         </div>
 
         <div className="flex flex-wrap justify-center gap-6 mt-10">
-
           <Link
             href={`/invoice/${order.id}`}
             className="bg-yellow-400 text-black px-8 py-3 rounded-full font-bold hover:bg-yellow-300 transition"
@@ -118,9 +130,7 @@ export default function SuccessPage() {
           >
             View Orders
           </Link>
-
         </div>
-
       </div>
     </main>
   );

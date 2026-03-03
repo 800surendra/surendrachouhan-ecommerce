@@ -8,11 +8,10 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
-  sendEmailVerification,
   User,
   UserCredential,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 type AuthContextType = {
   user: User | null;
@@ -31,7 +30,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  /* ===== Auth State Listener ===== */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
@@ -53,22 +51,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  /* ===== Register + Send Verification ===== */
+  /* ===== REGISTER ===== */
   const register = async (email: string, password: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-    if (userCredential.user) {
-      await sendEmailVerification(userCredential.user);
-    }
+    await setDoc(doc(db, "users", user.uid), {
+      email,
+      role: "user",
+      emailVerified: false,
+      createdAt: new Date(),
+    });
 
     return userCredential;
   };
 
-  /* ===== Login (Block if Not Verified) ===== */
+  /* ===== LOGIN ===== */
   const login = async (email: string, password: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-    if (!userCredential.user.emailVerified) {
+    const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+
+    if (!userDoc.exists() || !userDoc.data()?.emailVerified) {
       await signOut(auth);
       throw new Error("EMAIL_NOT_VERIFIED");
     }

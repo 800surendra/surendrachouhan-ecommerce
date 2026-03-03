@@ -4,8 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { doc, setDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { signOut } from "firebase/auth";
+import { auth } from "../lib/firebase";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -32,16 +32,9 @@ export default function RegisterPage() {
       setError("");
       setSuccess("");
 
-      // 🔐 Create user
+      // 🔐 Create user + Firestore save (AuthContext me hoga)
       const userCredential = await register(email, password);
       const user = userCredential.user;
-
-      // 👤 Save user in Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        email,
-        role: "user",
-        createdAt: new Date(),
-      });
 
       // 📧 Send OTP
       await fetch("/api/send-otp", {
@@ -53,9 +46,11 @@ export default function RegisterPage() {
         }),
       });
 
+      // 🔥 Logout after everything saved
+      await signOut(auth);
+
       setSuccess("OTP sent to your email. Please verify your account.");
 
-      // 👉 Redirect to Verify Page
       setTimeout(() => router.push("/verify"), 1500);
 
     } catch (err: any) {

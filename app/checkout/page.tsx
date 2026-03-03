@@ -75,76 +75,85 @@ export default function CheckoutPage() {
   }
 
   const placeOrder = async () => {
-    const cleanTxnId = txnId.trim().toUpperCase();
+  const cleanTxnId = txnId.trim().toUpperCase();
 
-    /* 🔥 DELIVERY VALIDATION */
-    if (!name || !phone || !address || !city || !pincode) {
-      setError("Please fill all delivery details");
-      return;
+  if (!name || !phone || !address || !city || !pincode) {
+    setError("Please fill all delivery details");
+    return;
+  }
+
+  if (!cleanTxnId) {
+    setError("Please enter UPI Transaction ID");
+    return;
+  }
+
+  if (cleanTxnId.length < 6) {
+    setError("Invalid Transaction ID");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setError("");
+
+    // 🔍 Prevent duplicate transaction ID
+    const txnQuery = query(
+      collection(db, "orders"),
+      where("transactionId", "==", cleanTxnId)
+    );
+
+    const txnSnap = await getDocs(txnQuery);
+    if (!txnSnap.empty) {
+      throw new Error("This Transaction ID is already used.");
     }
 
-    if (!cleanTxnId) {
-      setError("Please enter UPI Transaction ID");
-      return;
-    }
+    const orderRef = doc(collection(db, "orders"));
+    const orderId = orderRef.id;
 
-    if (cleanTxnId.length < 6) {
-      setError("Invalid Transaction ID");
-      return;
-    }
+    await runTransaction(db, async (transaction) => {
 
-    try {
-      setLoading(true);
-      setError("");
+      transaction.set(orderRef, {
+        userId: user.uid,
+        userEmail: user.email || "",
 
-      const txnQuery = query(
-        collection(db, "orders"),
-        where("transactionId", "==", cleanTxnId)
-      );
+        // 🔒 Firestore rule safe types
+        items: cart.map(item => ({
+          id: item.id,
+          title: item.title,
+          price: Number(item.price),
+          quantity: Number(item.quantity)
+        })),
 
-      const txnSnap = await getDocs(txnQuery);
-      if (!txnSnap.empty) {
-        throw new Error("This Transaction ID is already used.");
-      }
+        subtotal: Number(subtotal),
+        deliveryFee: Number(deliveryFee),
+        total: Number(total),
 
-      const orderRef = doc(collection(db, "orders"));
-      const orderId = orderRef.id;
+        transactionId: cleanTxnId,
+        paymentMethod: "UPI",
+        paymentStatus: "Verification Pending",
+        status: "Pending",
 
-      await runTransaction(db, async (transaction) => {
-        transaction.set(orderRef, {
-          userId: user.uid,
-          userEmail: user.email || "",
-          items: cart,
-          subtotal,
-          deliveryFee,
-          total,
-          transactionId: cleanTxnId,
-          paymentMethod: "UPI",
-          paymentStatus: "Verification Pending",
-          status: "Pending",
-          createdAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
 
-          /* 🔥 SAVE CUSTOMER DETAILS */
-          customerDetails: {
-            name,
-            phone,
-            address,
-            city,
-            pincode,
-          },
-        });
+        customerDetails: {
+          name,
+          phone,
+          address,
+          city,
+          pincode,
+        },
       });
+    });
 
-      clearCart();
-      router.push(`/success/${orderId}`);
+    clearCart();
+    router.push(`/success/${orderId}`);
 
-    } catch (err: any) {
-      setError(err.message || "Order failed. Try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  } catch (err: any) {
+    setError(err.message || "Order failed. Try again.");
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <main className="min-h-screen bg-linear-to-br from-black via-gray-950 to-black text-white px-6 md:px-16 py-16">
 
