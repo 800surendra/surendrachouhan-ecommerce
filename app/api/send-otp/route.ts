@@ -61,18 +61,58 @@ export async function POST(req: Request) {
 
     // 📧 Send Email
     await resend.emails.send({
-      from: "Surendra Book Store <onboarding@resend.dev>",
-      to: email,
-      subject: "Your Verification Code",
-      html: `
-        <div style="font-family: Arial; padding: 20px;">
-          <h2>Email Verification</h2>
-          <p>Your OTP code is:</p>
-          <h1 style="color:#facc15;">${otp}</h1>
-          <p>This code will expire in 5 minutes.</p>
-        </div>
-      `,
-    });
+  from: "Surendra Book Store <onboarding@resend.dev>",
+  to: email,
+  subject: "🔐 Your Surendra Book Store OTP Code",
+  
+  text: `
+Surendra Book Store
+
+Your One-Time Password (OTP) is: ${otp}
+
+This OTP will expire in 5 minutes.
+If you did not request this, please ignore this email.
+  `,
+
+  html: `
+  <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9fafb;">
+    <div style="max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px;">
+      
+      <h2 style="text-align:center; color:#111827;">
+        Surendra Book Store
+      </h2>
+
+      <p style="font-size:16px; color:#374151;">
+        Your One-Time Password (OTP) is:
+      </p>
+
+      <div style="text-align:center; margin: 20px 0;">
+        <span style="
+          display:inline-block;
+          font-size:28px;
+          font-weight:bold;
+          letter-spacing:4px;
+          background:#facc15;
+          padding:10px 20px;
+          border-radius:6px;
+          color:#111827;
+        ">
+          ${otp}
+        </span>
+      </div>
+
+      <p style="font-size:14px; color:#6b7280;">
+        This OTP will expire in <strong>5 minutes</strong>.
+      </p>
+
+      <p style="font-size:12px; color:#9ca3af;">
+        If you did not request this, please ignore this email.
+      </p>
+
+    </div>
+  </div>
+  `,
+});
 
     return NextResponse.json({
       success: true,

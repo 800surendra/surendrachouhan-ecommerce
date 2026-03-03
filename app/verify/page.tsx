@@ -1,23 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "../lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function VerifyPage() {
   const router = useRouter();
+
   const [otp, setOtp] = useState("");
+  const [uid, setUid] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // 🔥 Wait for Firebase auth state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUid(user.uid);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const handleVerify = async () => {
     if (!otp) return setError("Enter OTP");
+    if (!uid) return setError("User not authenticated");
 
     try {
       setLoading(true);
       setError("");
 
-      const user = auth.currentUser;
+      console.log("UID:", uid);
+      console.log("OTP:", otp);
 
       const res = await fetch("/api/verify-otp", {
         method: "POST",
@@ -25,7 +41,7 @@ export default function VerifyPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          uid: user?.uid,
+          uid,
           otp,
         }),
       });
