@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/app/lib/firebase";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   try {
@@ -19,24 +16,42 @@ export async function POST(req: Request) {
 
     const invoiceLink = `${process.env.NEXT_PUBLIC_SITE_URL}/invoice/${orderId}`;
 
-    await resend.emails.send({
-      from: "Surendra Book Store <onboarding@resend.dev>",
-      to: order.userEmail,
-      subject: "Your Payment is Verified ✅ | Invoice Inside",
-      html: `
-        <div style="font-family:Arial;padding:20px">
-          <h2>Payment Verified Successfully 🎉</h2>
-          <p>Your order <b>${orderId}</b> has been verified.</p>
-          <p>Total Paid: ₹${order.total}</p>
-          <p>
-            Download your invoice here:
-            <a href="${invoiceLink}">View Invoice</a>
-          </p>
-          <br/>
-          <p>Thank you for shopping with Surendra Book Store.</p>
-        </div>
-      `,
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": process.env.BREVO_API_KEY!,
+      },
+      body: JSON.stringify({
+        sender: {
+          name: "Surendra Book Store",
+          email: "8000haresh@gmail.com", // ⚠️ yaha apna verified email daalo
+        },
+        to: [
+          {
+            email: order.userEmail,
+          },
+        ],
+        subject: "Your Payment is Verified ✅ | Invoice Inside",
+        htmlContent: `
+          <div style="font-family:Arial;padding:20px">
+            <h2>Payment Verified Successfully 🎉</h2>
+            <p>Your order <b>${orderId}</b> has been verified.</p>
+            <p>Total Paid: ₹${order.total}</p>
+            <p>
+              Download your invoice here:
+              <a href="${invoiceLink}">View Invoice</a>
+            </p>
+            <br/>
+            <p>Thank you for shopping with Surendra Book Store.</p>
+          </div>
+        `,
+      }),
     });
+
+    if (!response.ok) {
+      throw new Error("Brevo email failed");
+    }
 
     return NextResponse.json({ success: true });
 

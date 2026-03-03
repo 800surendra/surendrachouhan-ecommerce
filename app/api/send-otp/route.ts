@@ -1,16 +1,7 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
-import { generateOTP } from "../../lib/generateOtp";
-import { db } from "../../lib/firebase";
-import {
-  doc,
-  setDoc,
-  getDoc,
-  serverTimestamp,
-  Timestamp,
-} from "firebase/firestore";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import SibApiV3Sdk from "sib-api-v3-sdk";
+import { db } from "@/app/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 export async function POST(req: Request) {
   try {
@@ -18,109 +9,52 @@ export async function POST(req: Request) {
 
     if (!email || !uid) {
       return NextResponse.json(
-        { error: "Email and UID are required" },
+        { error: "Missing data" },
         { status: 400 }
       );
     }
 
-    const docRef = doc(db, "emailVerifications", uid);
-    const existingDoc = await getDoc(docRef);
+    // 🔥 Generate 6 digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 🚫 Rate limit: 60 sec me dubara OTP nahi
-    if (existingDoc.exists()) {
-      const data = existingDoc.data();
-      const lastCreated = data.createdAt?.toDate?.();
-
-      if (lastCreated) {
-        const diff = Date.now() - lastCreated.getTime();
-        if (diff < 60000) {
-          return NextResponse.json(
-            { error: "Please wait before requesting another OTP" },
-            { status: 400 }
-          );
-        }
-      }
-    }
-
-    // 🔐 Generate OTP
-    const otp = generateOTP();
-
-    // ⏳ Expiry 5 minutes
-    const expiresAt = Timestamp.fromDate(
-      new Date(Date.now() + 5 * 60 * 1000)
-    );
-
-    // 💾 Save to Firestore
-    await setDoc(docRef, {
-      email,
+    // 🔥 Save OTP in Firestore
+    await setDoc(doc(db, "emailVerifications", uid), {
       otp,
-      verified: false,
-      createdAt: serverTimestamp(),
-      expiresAt,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 min
     });
 
-    // 📧 Send Email
-    await resend.emails.send({
-  from: "Surendra Book Store <onboarding@resend.dev>",
-  to: email,
-  subject: "🔐 Your Surendra Book Store OTP Code",
-  
-  text: `
-Surendra Book Store
+    // ==============================
+    // 🔥 BREVO CONFIG
+    // ==============================
 
-Your One-Time Password (OTP) is: ${otp}
+    const client = SibApiV3Sdk.ApiClient.instance;
+    const apiKey = client.authentications["api-key"];
+    apiKey.apiKey = process.env.BREVO_API_KEY!
 
-This OTP will expire in 5 minutes.
-If you did not request this, please ignore this email.
-  `,
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-  html: `
-  <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9fafb;">
-    <div style="max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px;">
-      
-      <h2 style="text-align:center; color:#111827;">
-        Surendra Book Store
-      </h2>
-
-      <p style="font-size:16px; color:#374151;">
-        Your One-Time Password (OTP) is:
-      </p>
-
-      <div style="text-align:center; margin: 20px 0;">
-        <span style="
-          display:inline-block;
-          font-size:28px;
-          font-weight:bold;
-          letter-spacing:4px;
-          background:#facc15;
-          padding:10px 20px;
-          border-radius:6px;
-          color:#111827;
-        ">
-          ${otp}
-        </span>
-      </div>
-
-      <p style="font-size:14px; color:#6b7280;">
-        This OTP will expire in <strong>5 minutes</strong>.
-      </p>
-
-      <p style="font-size:12px; color:#9ca3af;">
-        If you did not request this, please ignore this email.
-      </p>
-
-    </div>
-  </div>
-  `,
-});
+    await apiInstance.sendTransacEmail({
+      sender: {
+        email: "8000haresh@gmail.com", // 🔥 Yahan apna verified gmail dalna
+        name: "Surendra Book Store",
+      },
+      to: [{ email }],
+      subject: "Your OTP Code",
+      htmlContent: `
+        <h2>Email Verification</h2>
+        <p>Your OTP is:</p>
+        <h1>${otp}</h1>
+        <p>This code will expire in 10 minutes.</p>
+      `,
+    });
 
     return NextResponse.json({
       success: true,
       message: "OTP sent successfully",
     });
 
-  } catch (error: any) {
-    console.error("OTP Error:", error);
+  } catch (error) {
+    console.error("Brevo Error:", error);
     return NextResponse.json(
       { error: "Failed to send OTP" },
       { status: 500 }
