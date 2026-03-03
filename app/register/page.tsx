@@ -4,8 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signOut } from "firebase/auth";
-import { auth } from "../lib/firebase";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -32,7 +30,7 @@ export default function RegisterPage() {
       setError("");
       setSuccess("");
 
-      // 🔐 Create user + Firestore save (AuthContext me hoga)
+      // 🔐 Create user
       const userCredential = await register(email, password);
       const user = userCredential.user;
 
@@ -46,8 +44,8 @@ export default function RegisterPage() {
         }),
       });
 
-      // 🔥 Logout after everything saved
-      await signOut(auth);
+      // ✅ Save UID locally for verification
+      localStorage.setItem("verify_uid", user.uid);
 
       setSuccess("OTP sent to your email. Please verify your account.");
 

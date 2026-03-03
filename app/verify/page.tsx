@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "../lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
 
 export default function VerifyPage() {
   const router = useRouter();
@@ -13,15 +11,12 @@ export default function VerifyPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔥 Wait for Firebase auth state
+  // 🔥 UID localStorage se lo
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUid(user.uid);
-      }
-    });
-
-    return () => unsubscribe();
+    const storedUid = localStorage.getItem("verify_uid");
+    if (storedUid) {
+      setUid(storedUid);
+    }
   }, []);
 
   const handleVerify = async () => {
@@ -31,9 +26,6 @@ export default function VerifyPage() {
     try {
       setLoading(true);
       setError("");
-
-      console.log("UID:", uid);
-      console.log("OTP:", otp);
 
       const res = await fetch("/api/verify-otp", {
         method: "POST",
@@ -52,6 +44,9 @@ export default function VerifyPage() {
         setError(data.error);
         return;
       }
+
+      // OTP doc delete ho jayega backend me
+      localStorage.removeItem("verify_uid");
 
       router.push("/login");
 
