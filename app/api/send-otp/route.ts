@@ -8,24 +8,22 @@ export async function POST(req: Request) {
 
     if (!email || !uid) {
       return NextResponse.json(
-        { error: "Missing data" },
+        { error: "Missing email or uid" },
         { status: 400 }
       );
     }
 
-    // 🔥 Generate 6 digit OTP
+    // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 🔥 Save OTP in Firestore (10 min expiry)
+    // Save OTP in Firestore
     await setDoc(doc(db, "emailVerifications", uid), {
+      email,
       otp,
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
 
-    // ==============================
-    // 🔥 BREVO FETCH API (No SDK)
-    // ==============================
-
+    // Send email using Brevo
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
@@ -34,29 +32,31 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         sender: {
-          email: "8000haresh@gmail.com", // ⚠ Must be verified in Brevo
           name: "Surendra Book Store",
+          email: "8000haresh@gmail.com",
         },
         to: [{ email }],
         subject: "Your OTP Code",
         htmlContent: `
-          <h2>Email Verification</h2>
-          <p>Your OTP is:</p>
-          <h1>${otp}</h1>
-          <p>This code will expire in 10 minutes.</p>
+          <div style="font-family:sans-serif">
+            <h2>Email Verification</h2>
+            <p>Your OTP code is:</p>
+            <h1>${otp}</h1>
+            <p>This OTP will expire in 10 minutes.</p>
+          </div>
         `,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error("Brevo API Error:", errorData);
+      console.error("Brevo Error:", errorData);
       throw new Error("Email sending failed");
     }
 
     return NextResponse.json({
       success: true,
-      message: "OTP sent successfully",
+      message: "OTP sent",
     });
 
   } catch (error) {

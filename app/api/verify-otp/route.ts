@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "../../lib/firebase";
+import { db } from "@/app/lib/firebase";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 
 export async function POST(req: Request) {
@@ -8,22 +8,22 @@ export async function POST(req: Request) {
 
     if (!uid || !otp) {
       return NextResponse.json(
-        { error: "Missing data" },
+        { error: "Missing uid or otp" },
         { status: 400 }
       );
     }
 
     const otpRef = doc(db, "emailVerifications", uid);
-    const otpSnap = await getDoc(otpRef);
+    const snap = await getDoc(otpRef);
 
-    if (!otpSnap.exists()) {
+    if (!snap.exists()) {
       return NextResponse.json(
-        { error: "Invalid request" },
+        { error: "OTP not found" },
         { status: 400 }
       );
     }
 
-    const data = otpSnap.data();
+    const data = snap.data();
 
     // OTP mismatch
     if (data.otp !== otp) {
@@ -33,20 +33,21 @@ export async function POST(req: Request) {
       );
     }
 
-    // Expired check
-    if (data.expiresAt.toDate() < new Date()) {
+    // Expiry check
+    const expiry = new Date(data.expiresAt);
+    if (expiry < new Date()) {
       return NextResponse.json(
         { error: "OTP expired" },
         { status: 400 }
       );
     }
 
-    // 🔥 Update user document
+    // Update user verified
     await updateDoc(doc(db, "users", uid), {
       emailVerified: true,
     });
 
-    // 🔥 Clean up OTP document
+    // Delete OTP document
     await deleteDoc(otpRef);
 
     return NextResponse.json({

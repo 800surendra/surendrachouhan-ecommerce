@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function LoginPage() {
+
   const { login } = useAuth();
   const router = useRouter();
 
@@ -16,45 +17,65 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   const handleLogin = async () => {
+
     if (!email || !password) {
       return setError("Please fill all fields");
     }
 
     try {
+
       setLoading(true);
       setError("");
 
-      await login(email, password);
+      const userCredential = await login(email, password);
 
-      router.push("/");
-    } catch (err: any) {
-      let message = "Login failed. Please try again.";
+      const user = userCredential.user;
 
-      /* ===== Email Not Verified Handling ===== */
-      if (err.message === "EMAIL_NOT_VERIFIED") {
-        message =
-          "Please verify your email before logging in. Check your inbox.";
+      // 🔥 Email verification check
+      if (!user.emailVerified) {
+
+        router.push(`/verify?uid=${user.uid}`);
+
+        return;
       }
 
-      /* ===== Firebase Error Handling ===== */
-      else if (err.code === "auth/invalid-email") {
+      // 🔥 If verified go to homepage
+      router.push("/");
+
+    } catch (err: any) {
+
+      let message = "Login failed. Please try again.";
+
+      if (err.code === "auth/invalid-email") {
         message = "Invalid email format.";
-      } else if (err.code === "auth/user-not-found") {
+      }
+
+      else if (err.code === "auth/user-not-found") {
         message = "No account found with this email.";
-      } else if (err.code === "auth/wrong-password") {
+      }
+
+      else if (err.code === "auth/wrong-password") {
         message = "Incorrect password.";
-      } else if (err.code === "auth/invalid-credential") {
+      }
+
+      else if (err.code === "auth/invalid-credential") {
         message = "Invalid email or password.";
       }
 
       setError(message);
+
     } finally {
+
       setLoading(false);
+
     }
+
   };
 
   return (
+
     <main className="min-h-screen bg-linear-to-br from-black via-gray-900 to-black text-white flex items-center justify-center px-6">
+
       <div className="bg-gray-900/80 backdrop-blur p-10 rounded-3xl shadow-2xl w-full max-w-md border border-gray-800">
 
         <h1 className="text-3xl font-bold mb-2 text-center">
@@ -86,6 +107,7 @@ export default function LoginPage() {
           />
 
           {/* Forgot Password */}
+
           <div className="text-right">
             <Link
               href="/forgot-password"
@@ -117,7 +139,11 @@ export default function LoginPage() {
           </p>
 
         </div>
+
       </div>
+
     </main>
+
   );
+
 }
