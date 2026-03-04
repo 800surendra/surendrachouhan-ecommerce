@@ -1,12 +1,15 @@
 "use client";
 
 import { useAuth } from "../context/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signOut } from "firebase/auth";
+import { auth } from "../lib/firebase";
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+
+  const { register, user } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -16,7 +19,15 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  // 🔒 If already logged in redirect to home
+  useEffect(() => {
+    if (user) {
+      router.push("/");
+    }
+  }, [user, router]);
+
   const handleRegister = async () => {
+
     if (!email || !password) {
       return setError("Please fill all fields");
     }
@@ -26,40 +37,51 @@ export default function RegisterPage() {
     }
 
     try {
+
       setLoading(true);
       setError("");
       setSuccess("");
 
       // 🔐 Create user
       const userCredential = await register(email, password);
-      const user = userCredential.user;
+      const userData = userCredential.user;
 
       // 📧 Send OTP
       await fetch("/api/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: user.email,
-          uid: user.uid,
+          email: userData.email,
+          uid: userData.uid,
         }),
       });
 
-      // ✅ Save UID locally for verification
-      localStorage.setItem("verify_uid", user.uid);
+      // 🔑 Save UID locally
+      localStorage.setItem("verify_uid", userData.uid);
+
+      // 🔐 IMPORTANT → logout user after register
+      await signOut(auth);
 
       setSuccess("OTP sent to your email. Please verify your account.");
 
-      setTimeout(() => router.push("/verify"), 1500);
+      setTimeout(() => {
+        router.push("/verify");
+      }, 1500);
 
     } catch (err: any) {
+
       setError(err.message.replace("Firebase:", ""));
+
     } finally {
+
       setLoading(false);
+
     }
   };
 
   return (
     <main className="min-h-screen bg-linear-to-br from-black via-gray-900 to-black text-white flex items-center justify-center px-6">
+
       <div className="bg-gray-900/80 backdrop-blur p-10 rounded-3xl shadow-2xl w-full max-w-md border border-gray-800">
 
         <h1 className="text-3xl font-bold mb-2 text-center">
@@ -89,11 +111,15 @@ export default function RegisterPage() {
           />
 
           {error && (
-            <p className="text-red-400 text-sm text-center">{error}</p>
+            <p className="text-red-400 text-sm text-center">
+              {error}
+            </p>
           )}
 
           {success && (
-            <p className="text-green-400 text-sm text-center">{success}</p>
+            <p className="text-green-400 text-sm text-center">
+              {success}
+            </p>
           )}
 
           <button
@@ -112,7 +138,9 @@ export default function RegisterPage() {
           </p>
 
         </div>
+
       </div>
+
     </main>
   );
 }

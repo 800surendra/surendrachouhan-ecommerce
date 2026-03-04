@@ -4,6 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 export default function LoginPage() {
 
@@ -31,8 +33,19 @@ export default function LoginPage() {
 
       const user = userCredential.user;
 
-      // 🔥 Email verification check
-      if (!user.emailVerified) {
+      // 🔥 Firestore user document check
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        setError("User data not found");
+        return;
+      }
+
+      const userData = userSnap.data();
+
+      // 🔥 Email verification check (Firestore)
+      if (!userData.emailVerified) {
 
         router.push(`/verify?uid=${user.uid}`);
 
@@ -105,8 +118,6 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleLogin()}
           />
-
-          {/* Forgot Password */}
 
           <div className="text-right">
             <Link
