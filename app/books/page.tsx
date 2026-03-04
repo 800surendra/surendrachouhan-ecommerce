@@ -3,65 +3,105 @@
 import { useState, useMemo } from "react";
 import BookCard from "../components/BookCard";
 import { useBooks } from "../context/BookContext";
+import { motion } from "framer-motion";
 
 export default function BooksPage() {
+
   const { books } = useBooks();
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [sort, setSort] = useState("default");
 
-  /* ===== Unique Categories ===== */
+  /* ===== Categories ===== */
+
   const categories = [
     "All",
     ...new Set(books.map((b) => b.category).filter(Boolean)),
   ];
 
-  /* ===== Filter + Search + Sort + Stock Priority ===== */
+  /* ===== Filter + Search + Sort ===== */
+
   const filteredBooks = useMemo(() => {
+
     let result = [...books];
 
-    // Search
     if (search) {
+
       result = result.filter((book) =>
         book.title.toLowerCase().includes(search.toLowerCase())
       );
+
     }
 
-    // Category
     if (category !== "All") {
+
       result = result.filter((book) => book.category === category);
+
     }
 
-    // Sort price
     if (sort === "low-high") {
+
       result.sort((a, b) => a.price - b.price);
+
     } else if (sort === "high-low") {
+
       result.sort((a, b) => b.price - a.price);
+
     }
 
-    // Push Out of Stock books to bottom
     result.sort((a, b) => (a.stock === 0 ? 1 : -1));
 
     return result;
+
   }, [books, search, category, sort]);
 
+  const clearFilters = () => {
+
+    setSearch("");
+    setCategory("All");
+    setSort("default");
+
+  };
+
   return (
-    <main className="min-h-screen bg-linear-to-br from-black via-gray-900 to-black text-white px-6 md:px-16 py-16">
 
-      {/* ===== Header ===== */}
-      <h1 className="text-4xl font-bold mb-6 text-center text-yellow-400">
-        📚 Explore Our Collection
-      </h1>
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-950 to-black text-white px-6 md:px-16 py-16 overflow-hidden">
 
-      <p className="text-center text-gray-400 mb-12">
-        {filteredBooks.length} books available
-      </p>
+      {/* HERO HEADER */}
 
-      {/* ===== Filters Section ===== */}
-      <div className="bg-gray-900 p-6 rounded-2xl mb-12 border border-gray-800 grid md:grid-cols-3 gap-6 shadow-lg">
+      <section className="text-center mb-14">
 
-        {/* Search */}
+        <h1 className="text-4xl md:text-5xl font-extrabold mb-4 bg-gradient-to-r from-yellow-400 via-orange-400 to-purple-500 bg-clip-text text-transparent">
+
+          Explore Our Book Collection
+
+        </h1>
+
+        <p className="text-gray-400">
+
+          Discover your next favorite book
+
+        </p>
+
+        <div className="mt-4 inline-block bg-gray-900 px-4 py-1 rounded-full border border-gray-800 text-yellow-400 text-sm">
+
+          {filteredBooks.length} Books Available
+
+        </div>
+
+      </section>
+
+      {/* FILTER PANEL */}
+
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gray-900/80 backdrop-blur-lg p-6 rounded-3xl border border-gray-800 grid md:grid-cols-4 gap-6 mb-14 shadow-lg"
+      >
+
+        {/* SEARCH */}
+
         <input
           type="text"
           placeholder="Search books..."
@@ -70,53 +110,115 @@ export default function BooksPage() {
           className="bg-gray-800 p-3 rounded-lg outline-none focus:ring-2 focus:ring-yellow-400 transition"
         />
 
-        {/* Category */}
+        {/* CATEGORY */}
+
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="bg-gray-800 p-3 rounded-lg outline-none focus:ring-2 focus:ring-yellow-400 transition"
+          className="bg-gray-800 p-3 rounded-lg outline-none focus:ring-2 focus:ring-purple-400 transition"
         >
+
           {categories.map((cat, index) => (
+
             <option key={index}>{cat}</option>
+
           ))}
+
         </select>
 
-        {/* Sort */}
+        {/* SORT */}
+
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          className="bg-gray-800 p-3 rounded-lg outline-none focus:ring-2 focus:ring-yellow-400 transition"
+          className="bg-gray-800 p-3 rounded-lg outline-none focus:ring-2 focus:ring-orange-400 transition"
         >
+
           <option value="default">Sort By</option>
           <option value="low-high">Price: Low → High</option>
           <option value="high-low">Price: High → Low</option>
+
         </select>
+
+        {/* CLEAR FILTER */}
+
+        <button
+          onClick={clearFilters}
+          className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black font-semibold rounded-lg px-4 py-2 hover:scale-105 transition"
+        >
+
+          Clear Filters
+
+        </button>
+
+      </motion.div>
+
+      {/* CATEGORY CHIPS */}
+
+      <div className="flex flex-wrap gap-3 mb-10">
+
+        {categories.map((cat, index) => (
+
+          <button
+            key={index}
+            onClick={() => setCategory(cat)}
+            className={`px-4 py-1 rounded-full text-sm border transition ${
+              category === cat
+                ? "bg-yellow-400 text-black border-yellow-400"
+                : "border-gray-700 text-gray-400 hover:border-yellow-400 hover:text-yellow-400"
+            }`}
+          >
+
+            {cat}
+
+          </button>
+
+        ))}
 
       </div>
 
-      {/* ===== Books Grid ===== */}
+      {/* BOOK GRID */}
+
       {filteredBooks.length === 0 ? (
+
         <div className="text-center mt-20">
+
           <p className="text-gray-400 text-lg">
-            No books found matching your criteria.
+
+            No books found matching your criteria
+
           </p>
+
         </div>
+
       ) : (
+
         <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10">
+
           {filteredBooks.map((book) => (
-            <div
+
+            <motion.div
               key={book.id}
-              className={`transition duration-300 ${
+              whileHover={{ scale: 1.05 }}
+              className={`transition ${
                 book.stock === 0
                   ? "opacity-60"
-                  : "hover:scale-105"
+                  : ""
               }`}
             >
+
               <BookCard book={book} />
-            </div>
+
+            </motion.div>
+
           ))}
+
         </div>
+
       )}
+
     </main>
+
   );
+
 }

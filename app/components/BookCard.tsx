@@ -3,47 +3,118 @@
 import Link from "next/link";
 import { useCart } from "../context/CartContext";
 import { Book } from "../context/BookContext";
+import { motion } from "framer-motion";
 
 export default function BookCard({ book }: { book: Book }) {
+
   const { addToCart } = useCart();
 
+  const outOfStock = book.stock === 0;
+
   return (
-    <div className="bg-gray-900 rounded-2xl p-6 shadow-lg hover:scale-105 hover:shadow-yellow-400/30 transition duration-300">
+
+    <motion.div
+      whileHover={{ y: -6 }}
+      className={`relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-5 border border-gray-800 shadow-xl transition overflow-hidden ${
+        outOfStock ? "opacity-60" : "hover:border-yellow-400"
+      }`}
+    >
+
+      {/* OUT OF STOCK */}
+
+      {outOfStock && (
+
+        <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10 text-white font-bold text-lg">
+
+          Out of Stock
+
+        </div>
+
+      )}
+
+      {/* IMAGE */}
 
       <Link href={`/books/${book.id}`}>
-        <img
-          src={book.image}
-          alt={book.title}
-          className="h-48 w-full object-cover rounded-lg mb-4 cursor-pointer"
-        />
+
+        <div className="overflow-hidden rounded-xl mb-4">
+
+          <img
+            src={book.image}
+            alt={book.title}
+            className="h-52 w-full object-cover transition duration-500 hover:scale-110"
+          />
+
+        </div>
+
       </Link>
+
+      {/* CATEGORY */}
+
+      <div className="text-xs mb-2 inline-block px-3 py-1 bg-purple-600/20 text-purple-400 rounded-full">
+
+        {book.category}
+
+      </div>
+
+      {/* TITLE */}
 
       <Link
         href={`/books/${book.id}`}
-        className="text-xl font-semibold mb-2 block hover:text-yellow-400 transition"
+        className="block text-lg font-semibold mb-1 hover:text-yellow-400 transition"
       >
+
         {book.title}
+
       </Link>
 
-      <p className="text-gray-400 text-sm mb-1">
-        by {book.author}
-      </p>
+      {/* AUTHOR */}
 
       <p className="text-gray-400 text-sm mb-2">
-        {book.category}
+
+        by {book.author}
+
       </p>
 
-      <p className="text-yellow-400 font-bold text-lg mb-4">
-        ₹{book.price}
-      </p>
+      {/* PRICE */}
+
+      <div className="flex items-center justify-between mb-4">
+
+        <p className="text-yellow-400 font-bold text-xl">
+
+          ₹{book.price}
+
+        </p>
+
+        {!outOfStock && (
+
+          <span className="text-green-400 text-xs font-semibold">
+
+            In Stock
+
+          </span>
+
+        )}
+
+      </div>
+
+      {/* ADD TO CART */}
 
       <button
         onClick={() => addToCart(book)}
-        className="w-full bg-yellow-400 text-black py-2 rounded-lg font-semibold hover:bg-yellow-300 transition"
+        disabled={outOfStock}
+        className={`w-full py-2 rounded-full font-semibold transition ${
+          outOfStock
+            ? "bg-gray-700 cursor-not-allowed"
+            : "bg-gradient-to-r from-yellow-400 to-orange-400 text-black hover:scale-105"
+        }`}
       >
-        Add to Cart
+
+        {outOfStock ? "Unavailable" : "Add to Cart"}
+
       </button>
 
-    </div>
+    </motion.div>
+
   );
+
 }

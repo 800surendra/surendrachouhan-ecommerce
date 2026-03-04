@@ -6,7 +6,7 @@ import { Toaster } from "react-hot-toast";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://surendrachouhan-ecommerce-xeb9.vercel.app"), // 🔴 yaha apna real domain daal
+  metadataBase: new URL("https://surendrachouhan-ecommerce.vercel.app"),
 
   title: {
     default: "Surendra Book Store | Buy Books Online in India",
@@ -14,16 +14,16 @@ export const metadata: Metadata = {
   },
 
   description:
-    "Buy bestselling fiction, business, finance and productivity books online at Surendra Book Store. Fast delivery across India. Secure checkout & premium experience.",
+    "Buy bestselling fiction, business, finance and productivity books online at Surendra Book Store. Fast delivery across India with secure checkout.",
 
   keywords: [
     "buy books online india",
     "online bookstore india",
+    "best books to read",
     "business books",
-    "finance books",
     "self help books",
     "fiction books",
-    "best books to read",
+    "finance books",
     "Surendra Book Store",
   ],
 
@@ -34,11 +34,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Surendra Book Store | Premium Online Bookstore",
     description:
-      "Discover bestselling books across multiple genres. Fast delivery & secure checkout.",
-    url: "https://surendrachouhan-ecommerce-xeb9.vercel.app,",
+      "Discover bestselling books across multiple genres. Secure checkout & fast delivery.",
+    url: "https://surendrachouhan-ecommerce.vercel.app",
     siteName: "Surendra Book Store",
-    type: "website",
     locale: "en_IN",
+    type: "website",
     images: [
       {
         url: "/og-image.png",
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Surendra Book Store",
     description:
-      "Premium online bookstore with secure checkout & fast delivery.",
+      "Premium online bookstore with secure checkout and fast delivery.",
     images: ["/og-image.png"],
   },
 
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
   },
 
   alternates: {
-    canonical: "https://surendrachouhan-ecommerce-xeb9.vercel.app",
+    canonical: "https://surendrachouhan-ecommerce.vercel.app",
   },
 };
 
@@ -77,31 +77,46 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-black text-white min-h-screen flex flex-col">
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-black text-white min-h-screen flex flex-col antialiased">
+
         <Providers>
 
+          {/* NAVBAR */}
+
           <Navbar />
+
+          {/* GLOBAL TOAST */}
 
           <Toaster
             position="top-center"
             toastOptions={{
+              duration: 4000,
               style: {
                 background: "#111827",
                 color: "#fff",
                 border: "1px solid #facc15",
                 borderRadius: "12px",
+                padding: "12px 16px",
+                fontSize: "14px",
               },
             }}
           />
 
+          {/* MAIN CONTENT */}
+
           <main className="grow">
+
             {children}
+
           </main>
+
+          {/* FOOTER */}
 
           <Footer />
 
         </Providers>
+
       </body>
     </html>
   );

@@ -17,7 +17,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import emailjs from "@emailjs/browser";
-
+import { generateInvoice } from "../lib/generateInvoice";
 import {
   BarChart,
   Bar,
@@ -62,6 +62,7 @@ export default function AdminPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [editingBookId, setEditingBookId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const [form, setForm] = useState({
     title: "",
@@ -128,6 +129,7 @@ export default function AdminPage() {
 
   /* ================= VERIFY PAYMENT ================= */
 const sendOrderEmail = async (order: Order) => {
+  const invoice = generateInvoice(order);
   try {
     await emailjs.send(
       "service_u542doz",
@@ -202,7 +204,35 @@ await sendOrderEmail(order);
   };
 
   /* ================= BOOK ADD ================= */
+const uploadImage = async (file: File) => {
+  try {
+    setUploading(true);
 
+    const data = new FormData();
+    data.append("file", file);
+    data.append("upload_preset", "bookstore_upload");
+
+    const res = await fetch(
+      "https://api.cloudinary.com/v1_1/dmb38ab37/image/upload",
+      {
+        method: "POST",
+        body: data,
+      }
+    );
+
+    const json = await res.json();
+
+    setForm((prev) => ({
+      ...prev,
+      image: json.secure_url,
+    }));
+
+  } catch (err) {
+    alert("Image upload failed");
+  } finally {
+    setUploading(false);
+  }
+};
   const handleAddBook = async () => {
     if (!form.title || !form.price || !form.stock) return;
 
@@ -240,9 +270,9 @@ await sendOrderEmail(order);
   return (
     <main className="min-h-screen bg-black text-white px-6 md:px-16 py-16">
 
-      <h1 className="text-4xl font-bold text-yellow-400 text-center mb-12">
-        👑 SURENDRA PRO ADMIN PANEL
-      </h1>
+      <h1 className="text-5xl font-extrabold text-center mb-16 bg-gradient-to-r from-yellow-400 via-orange-400 to-purple-500 bg-clip-text text-transparent">
+  👑 Surendra Ultra Admin Dashboard
+</h1>
 
       {/* ===== STATS ===== */}
       <div className="grid md:grid-cols-4 gap-6 mb-16">
@@ -259,7 +289,7 @@ await sendOrderEmail(order);
       </div>
 
       {/* ===== GRAPH ===== */}
-      <div className="bg-gray-900 p-8 rounded-3xl mb-16 shadow-xl">
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-10 rounded-3xl mb-16 shadow-2xl border border-gray-800">
         <h2 className="text-xl text-yellow-400 mb-6">📊 Sales Overview</h2>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData}>
@@ -338,7 +368,7 @@ await sendOrderEmail(order);
       </div>
 
       {/* ===== BOOKS ===== */}
-      <div className="bg-gray-900 p-8 rounded-3xl shadow-xl">
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-10 rounded-3xl shadow-2xl border border-gray-800">
         <h2 className="text-2xl text-yellow-400 mb-6">📚 Manage Books</h2>
 
         {books.map((book) => (
@@ -424,19 +454,26 @@ await sendOrderEmail(order);
     />
 
     <input
-      value={book.image || ""}
-      onChange={(e) =>
-        setBooks((prev) =>
-          prev.map((b) =>
-            b.id === book.id
-              ? { ...b, image: e.target.value }
-              : b
-          )
-        )
-      }
-      className="bg-gray-800 p-2 rounded w-full mb-2"
-      placeholder="Image URL"
-    />
+  type="file"
+  accept="image/*"
+  onChange={(e) => {
+    if (e.target.files?.[0]) {
+      uploadImage(e.target.files[0]);
+    }
+  }}
+  className="bg-gray-800 p-2 rounded w-full mb-2"
+/>
+
+{uploading && (
+  <p className="text-yellow-400 text-sm">Uploading image...</p>
+)}
+
+{form.image && (
+  <img
+    src={form.image}
+    className="w-24 h-24 object-cover rounded mt-2"
+  />
+)}
 
     <textarea
       value={book.description || ""}
@@ -555,10 +592,21 @@ await sendOrderEmail(order);
 }
 
 function Stat({ title, value }: any) {
+
   return (
-    <div className="bg-gray-900 p-6 rounded-2xl text-center shadow-lg">
-      <p className="text-gray-400">{title}</p>
-      <h2 className="text-2xl text-yellow-400 font-bold">{value}</h2>
+
+    <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-3xl text-center shadow-xl border border-gray-800 hover:border-yellow-400 transition">
+
+      <p className="text-gray-400 mb-2">
+        {title}
+      </p>
+
+      <h2 className="text-3xl font-extrabold bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+        {value}
+      </h2>
+
     </div>
+
   );
+
 }

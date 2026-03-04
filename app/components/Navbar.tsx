@@ -7,8 +7,10 @@ import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { Search } from "lucide-react";
 
 export default function Navbar() {
+
   const pathname = usePathname();
   const { getTotalItems } = useCart();
   const { user, logout } = useAuth();
@@ -17,10 +19,12 @@ export default function Navbar() {
 
   const totalItems = getTotalItems();
 
-  /* ================= ADMIN ROLE CHECK ================= */
+  /* ===== ADMIN ROLE CHECK ===== */
 
   useEffect(() => {
+
     const checkRole = async () => {
+
       if (!user) {
         setIsAdmin(false);
         return;
@@ -33,119 +37,179 @@ export default function Navbar() {
       } else {
         setIsAdmin(false);
       }
+
     };
 
     checkRole();
+
   }, [user]);
 
-  /* ================= NAV LINK STYLE ================= */
+  /* ===== NAV LINK ===== */
 
   const navLink = (href: string, label: string) => {
+
     const active = pathname === href;
 
     return (
+
       <Link
         href={href}
-        className={`relative px-2 py-1 transition duration-300 font-medium ${
+        className={`relative group font-medium transition ${
           active
             ? "text-yellow-400"
             : "text-gray-300 hover:text-yellow-400"
         }`}
       >
+
         {label}
 
-        {/* Animated Underline */}
         <span
-          className={`absolute left-0 -bottom-1 h-0.5 bg-yellow-400 rounded-full transition-all duration-300 ${
+          className={`absolute left-0 -bottom-1 h-[2px] bg-gradient-to-r from-yellow-400 to-purple-500 rounded-full transition-all duration-300 ${
             active ? "w-full" : "w-0 group-hover:w-full"
           }`}
         />
+
       </Link>
+
     );
+
   };
 
   return (
-    <nav className="sticky top-0 z-50 backdrop-blur-2xl bg-black/60 border-b border-gray-800 shadow-lg shadow-black/40">
-      <div className="flex justify-between items-center px-8 md:px-16 py-4 text-white">
 
-        {/* ===== PREMIUM BRAND LOGO ===== */}
-<Link
-  href="/"
-  className="group flex flex-col leading-tight select-none"
->
-  <span className="text-2xl md:text-3xl font-extrabold tracking-wide bg-linear-to-r from-yellow-400 via-yellow-300 to-yellow-500 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(250,204,21,0.6)] transition duration-300 group-hover:scale-105">
-    Surendra
-  </span>
+    <nav className="sticky top-0 z-50 backdrop-blur-xl bg-black/70 border-b border-gray-800 shadow-lg">
 
-  <span className="text-xs text-gray-400 tracking-[0.25em] uppercase transition duration-300 group-hover:text-yellow-400">
-    Book Store
-  </span>
+      <div className="flex items-center justify-between px-6 md:px-16 py-4">
 
-  {/* Animated underline */}
-  <span className="h-0.5 w-0 bg-yellow-400 transition-all duration-500 group-hover:w-full mt-1 rounded-full"></span>
-</Link>
+        {/* ===== LOGO ===== */}
 
-        {/* Menu */}
-        <div className="flex items-center gap-8 text-sm md:text-base">
+        <Link
+          href="/"
+          className="flex flex-col group leading-tight select-none"
+        >
+
+          <span className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-yellow-400 via-orange-400 to-purple-500 bg-clip-text text-transparent group-hover:scale-105 transition">
+
+            Surendra
+
+          </span>
+
+          <span className="text-xs tracking-[0.3em] text-gray-400 group-hover:text-yellow-400 transition">
+
+            BOOK STORE
+
+          </span>
+
+        </Link>
+
+        {/* ===== SEARCH BAR ===== */}
+
+        <div className="hidden md:flex items-center bg-gray-900 border border-gray-800 rounded-full px-4 py-2 w-[350px]">
+
+          <Search size={18} className="text-gray-400 mr-2" />
+
+          <input
+            placeholder="Search books..."
+            className="bg-transparent outline-none text-sm w-full"
+          />
+
+        </div>
+
+        {/* ===== MENU ===== */}
+
+        <div className="flex items-center gap-6 text-sm md:text-base">
 
           {navLink("/", "Home")}
           {navLink("/books", "Books")}
 
-          {/* Cart */}
+          {/* ===== CART ===== */}
+
           <Link
             href="/cart"
             className="relative text-gray-300 hover:text-yellow-400 transition"
           >
+
             Cart
+
             {totalItems > 0 && (
-              <span className="absolute -top-2 -right-4 bg-yellow-400 text-black text-xs font-bold px-2 py-0.5 rounded-full shadow-md animate-pulse">
+
+              <span className="absolute -top-2 -right-3 bg-gradient-to-r from-yellow-400 to-orange-400 text-black text-xs font-bold px-2 py-0.5 rounded-full shadow animate-bounce">
+
                 {totalItems}
+
               </span>
+
             )}
+
           </Link>
 
           {!user ? (
+
             navLink("/login", "Login")
+
           ) : (
-            <div className="flex items-center gap-6">
+
+            <div className="flex items-center gap-4">
 
               {navLink("/orders", "Orders")}
 
-              {/* Admin Link */}
+              {/* ADMIN */}
+
               {isAdmin && (
+
                 <Link
                   href="/admin"
-                  className={`flex items-center gap-1 font-semibold ${
-                    pathname === "/admin"
-                      ? "text-yellow-400"
-                      : "text-gray-300 hover:text-yellow-400"
-                  }`}
+                  className="px-3 py-1 rounded-full bg-purple-600/20 text-purple-400 border border-purple-500 hover:bg-purple-600 hover:text-white transition text-sm"
                 >
+
                   👑 Admin
+
                 </Link>
+
               )}
 
-              {/* Profile Badge */}
+              {/* PROFILE */}
+
               <Link
                 href="/profile"
-                className="bg-gray-800 px-4 py-1 rounded-full text-yellow-400 text-sm hover:bg-gray-700 transition"
+                className="flex items-center gap-2 bg-gray-900 px-3 py-1 rounded-full border border-gray-700 hover:border-yellow-400 transition"
               >
-                👋 {user.email?.split("@")[0]}
+
+                <div className="w-7 h-7 rounded-full bg-gradient-to-r from-yellow-400 to-purple-500 flex items-center justify-center text-black font-bold text-xs">
+
+                  {user.email?.charAt(0).toUpperCase()}
+
+                </div>
+
+                <span className="text-yellow-400 text-sm">
+
+                  {user.email?.split("@")[0]}
+
+                </span>
+
               </Link>
 
-              {/* Logout */}
+              {/* LOGOUT */}
+
               <button
                 onClick={logout}
-                className="bg-yellow-400 text-black px-4 py-1 rounded-full text-sm font-semibold hover:bg-yellow-300 transition"
+                className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black px-4 py-1 rounded-full text-sm font-semibold hover:scale-105 transition"
               >
+
                 Logout
+
               </button>
 
             </div>
+
           )}
 
         </div>
+
       </div>
+
     </nav>
+
   );
+
 }

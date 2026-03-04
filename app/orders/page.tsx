@@ -14,7 +14,8 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
-
+import Link from "next/link";
+import { generateInvoice } from "../lib/generateInvoice";
 interface OrderItem {
   id: string;
   title: string;
@@ -130,6 +131,12 @@ export default function OrdersPage() {
                   <p className="text-gray-500 text-sm">
                     {order.createdAt?.toDate().toLocaleString()}
                   </p>
+                  <button
+onClick={() => generateInvoice(order)}
+className="mt-4 bg-yellow-400 text-black px-4 py-2 rounded-lg font-semibold hover:bg-yellow-300"
+>
+Download Invoice
+</button>
                 </div>
 
                 <span className={`px-4 py-1 rounded-full text-sm font-semibold
@@ -140,6 +147,12 @@ export default function OrdersPage() {
                   }`}>
                   {order.status}
                 </span>
+                <Link
+  href={`/track/${order.id}`}
+  className="text-yellow-400 hover:underline mt-2 block"
+>
+  Track Order
+</Link>
               </div>
 
               {/* Progress */}
