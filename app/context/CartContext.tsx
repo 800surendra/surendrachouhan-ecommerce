@@ -10,7 +10,7 @@ import {
 
 import { Book } from "./BookContext";
 import toast from "react-hot-toast";
-
+import { getAuth } from "firebase/auth";
 /* =========================
    TYPES
 ========================= */
@@ -47,24 +47,32 @@ export function CartProvider({
 }: {
   children: ReactNode;
 }) {
+
+  const auth = getAuth();
+  const user = auth.currentUser;
+
   const [cart, setCart] = useState<CartItem[]>([]);
 
   /* -------------------------
      LOAD CART
   ------------------------- */
   useEffect(() => {
-    const storedCart = localStorage.getItem("cart");
-    if (storedCart) {
-      setCart(JSON.parse(storedCart));
-    }
-  }, []);
+  const storedCart = user
+    ? localStorage.getItem(`cart_${user.uid}`)
+    : null;
 
+  if (storedCart) {
+    setCart(JSON.parse(storedCart));
+  }
+}, []);
   /* -------------------------
      SAVE CART
   ------------------------- */
-  useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart));
-  }, [cart]);
+ useEffect(() => {
+  if (user) {
+    localStorage.setItem(`cart_${user.uid}`, JSON.stringify(cart));
+  }
+}, [cart]);
 
   /* -------------------------
      ADD TO CART
@@ -144,7 +152,9 @@ export function CartProvider({
   ------------------------- */
   const clearCart = () => {
     setCart([]);
-    localStorage.removeItem("cart");
+   if (user) {
+  localStorage.removeItem(`cart_${user.uid}`);
+}
 
     toast.success("Cart Cleared 🧹");
   };

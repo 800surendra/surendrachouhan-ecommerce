@@ -6,14 +6,22 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebase";
+import { db } from "../lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 export default function RegisterPage() {
 
   const { register, user } = useAuth();
   const router = useRouter();
 
+  // ⭐ NEW
+  const [name, setName] = useState("");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // ⭐ OPTIONAL (future use)
+  const [phone, setPhone] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,7 +36,7 @@ export default function RegisterPage() {
 
   const handleRegister = async () => {
 
-    if (!email || !password) {
+    if (!name || !email || !password) {
       return setError("Please fill all fields");
     }
 
@@ -46,6 +54,15 @@ export default function RegisterPage() {
       const userCredential = await register(email, password);
       const userData = userCredential.user;
 
+      // ⭐ SAVE USER DATA (Firestore)
+      await setDoc(doc(db, "users", userData.uid), {
+        name: name,
+        email: email,
+        phone: phone || "",
+        role: "user",
+        createdAt: new Date()
+      });
+
       // 📧 Send OTP
       await fetch("/api/send-otp", {
         method: "POST",
@@ -60,9 +77,9 @@ export default function RegisterPage() {
       localStorage.setItem("verify_uid", userData.uid);
 
       // 🔐 IMPORTANT → logout user after register
-      await signOut(auth);
+      // await signOut(auth);
 
-      setSuccess("OTP sent to your email. Please verify your account.");
+      setSuccess("OTP sent to your email. Verify to continue.");
 
       setTimeout(() => {
         router.push("/verify");
@@ -93,6 +110,24 @@ export default function RegisterPage() {
         </p>
 
         <div className="space-y-4">
+
+          {/* ⭐ NAME */}
+          <input
+            type="text"
+            placeholder="Enter your name"
+            className="w-full p-3 bg-gray-800 rounded-lg outline-none focus:ring-2 focus:ring-yellow-400"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+
+          {/* ⭐ PHONE (OPTIONAL) */}
+          <input
+            type="tel"
+            placeholder="Enter your phone number (optional)"
+            className="w-full p-3 bg-gray-800 rounded-lg outline-none focus:ring-2 focus:ring-yellow-400"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
 
           <input
             type="email"

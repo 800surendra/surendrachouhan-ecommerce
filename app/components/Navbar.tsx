@@ -16,6 +16,7 @@ export default function Navbar() {
   const { user, logout } = useAuth();
 
   const [isAdmin, setIsAdmin] = useState(false);
+  const [name, setName] = useState("");
 
   const totalItems = getTotalItems();
 
@@ -32,11 +33,20 @@ export default function Navbar() {
 
       const snap = await getDoc(doc(db, "users", user.uid));
 
-      if (snap.exists() && snap.data().role === "admin") {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
-      }
+      if (snap.exists()) {
+
+  const data = snap.data();
+
+  if (data.role === "admin") {
+    setIsAdmin(true);
+  } else {
+    setIsAdmin(false);
+  }
+
+  // ⭐ NAME SET
+  setName(data.name);
+
+}
 
     };
 
@@ -177,13 +187,13 @@ export default function Navbar() {
 
                 <div className="w-7 h-7 rounded-full bg-gradient-to-r from-yellow-400 to-purple-500 flex items-center justify-center text-black font-bold text-xs">
 
-                  {user.email?.charAt(0).toUpperCase()}
+                 {name?.charAt(0).toUpperCase()}
 
                 </div>
 
                 <span className="text-yellow-400 text-sm">
 
-                  {user.email?.split("@")[0]}
+                  {name}
 
                 </span>
 

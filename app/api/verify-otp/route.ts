@@ -25,22 +25,22 @@ export async function POST(req: Request) {
 
     const data = snap.data();
 
-    // OTP mismatch
-    if (data.otp !== otp) {
-      return NextResponse.json(
-        { error: "Invalid OTP" },
-        { status: 400 }
-      );
-    }
+   // OTP mismatch
+if (String(data.otp) !== String(otp)) {
+  return NextResponse.json(
+    { error: "Invalid OTP" },
+    { status: 400 }
+  );
+}
 
-    // Expiry check
-    const expiry = new Date(data.expiresAt);
-    if (expiry < new Date()) {
-      return NextResponse.json(
-        { error: "OTP expired" },
-        { status: 400 }
-      );
-    }
+const expiry = new Date(data.expiresAt);
+
+if (expiry.getTime() < Date.now()) {
+  return NextResponse.json(
+    { error: "OTP expired" },
+    { status: 400 }
+  );
+}
 
     // Update user verified
     await updateDoc(doc(db, "users", uid), {
